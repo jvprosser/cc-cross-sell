@@ -39,57 +39,82 @@
 
 # # Spark-SQL from PySpark
 #
-# This example shows how to send SQL queries to Spark.
 
 from __future__ import print_function
 import os
 import sys
 from pyspark.sql import SparkSession
 
-# assume we're running in CML
+import sys
+# Because this gets run in a jupyter app, we can't use normal command-line args
+[tablename,file] = os.environ.get('JOB_ARGUMENTS').split()
+print(f"table={tablename}")
+print(f"file={file}")
+
+import os
+
+# Get all environment variables and sort them by key
+sorted_env = sorted(os.environ.items(), key=lambda x: x[0].lower())
+
+# Print the sorted environment variables
+for key, value in sorted_env:
+    print(f"{key}: {value}")
+    
+
 path_root=''
 
-# Are we running in CML
+# Are we rußnning in CML
 if 'CDSW_PROJECT' not in os.environ:
   path_root='/app/mount'
 
 else:
   path_root='/home/cdsw'
 
-spark = SparkSession\
-  .builder\
-  .appName(f"CCLlead-Data-Validation")\
-  .config("spark.sql.catalog.spark_catalog", "org.apache.iceberg.spark.SparkSessionCatalog")\
-  .config("spark.sql.catalog.spark_catalog.type", "hive")\
-  .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")\
-  .config("spark.yarn.access.hadoopFileSystems", data_lake_name)\
-  .getOrCreate()
 
+
+print(f"Getting config from {path_root}/parameters.conf")
 import configparser
 config = configparser.ConfigParser()
 config.read(f"{path_root}/parameters.conf")
 data_lake_name=config.get("general","data_lake_name")
 s3BucketName=config.get("general","s3BucketName")
-tablename=config.get("general","tablename")
+#tablename=config.get("general","tablename")
 database=config.get("general","database")
 srcdir=s3BucketName
+
+# see this article for more details and tips. Especially for Iceberg
+# https://community.cloudera.com/t5/Community-Articles/Spark-in-CML-Recommendations-for-using-Spark-in-Cloudera/ta-p/372164
+#
+
+spark = (
+  SparkSession.builder.appName("CCLead-Data-Loader")
+  .config("spark.sql.hive.hwc.execution.mode", "spark")
+  .config("spark.sql.extensions", "com.qubole.spark.hiveacid.HiveAcidAutoConvertExtension, org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
+  .config("spark.sql.catalog.spark_catalog.type", "hive")
+  .config("spark.sql.catalog.spark_catalog", "org.apache.iceberg.spark.SparkSessionCatalog")
+  .config("spark.yarn.access.hadoopFileSystems", data_lake_name)
+  .config("spark.hadoop.iceberg.engine.hive.enabled", "true")
+  .config("spark.jars", "/opt/spark/optional-lib/iceberg-spark-runtime.jar, /opt/spark/optional-lib/iceberg-hive-runtime.jar")
+  .getOrCreate()
+  )
 
 
 spark.sql(f"CREATE DATABASE if not exists ML_Train").show(10)
 
 
-df = spark.read.options(header='True', inferSchema='True', delimiter=',').csv(f"{s3BucketName}/train_00.csv")
+df = spark.read.options(header='True', inferSchema='True', delimiter=',').csv(f"{s3BucketName}/{file}")
 
 df.printSchema()
+print(f"Writing to {database}.{tablename}" )
 
 df.writeTo(f"{database}.{tablename}").tableProperty("write.format.default", "parquet")\
   .tableProperty("format-version" , "2")\
   .using("iceberg")\
   .createOrReplace()
   
-spark.sql(f"SELECT * FROM {tablename} limit 10").show(10)
+spark.sql(f"SELECT * FROM {database}.{tablename} limit 10").show(10)
 
 print ("Getting row count")
-spark.sql(f"SELECT count(*) FROM {tablename}").show(10)
+spark.sql(f"SELECT count(*) FROM {database}.{tablename}").show(10)
 
 spark.stop()
