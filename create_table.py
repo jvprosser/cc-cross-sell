@@ -45,42 +45,37 @@ import os
 import sys
 from pyspark.sql import SparkSession
 
-import sys
 # Because this gets run in a jupyter app, we can't use normal command-line args
-[tablename,file] = os.environ.get('JOB_ARGUMENTS').split()
-print(f"table={tablename}")
-print(f"file={file}")
-
-import os
-
-# Get all environment variables and sort them by key
-sorted_env = sorted(os.environ.items(), key=lambda x: x[0].lower())
-
-# Print the sorted environment variables
-for key, value in sorted_env:
-    print(f"{key}: {value}")
-    
+mode = os.environ.get('JOB_ARGUMENTS')
 
 path_root=''
 
-# Are we rußnning in CML
+# Are we running in CML
 if 'CDSW_PROJECT' not in os.environ:
   path_root='/app/mount'
-
 else:
   path_root='/home/cdsw'
 
 
-
 print(f"Getting config from {path_root}/parameters.conf")
 import configparser
+
+if mode == 'test':
+ tablename_conf='test_tablename'
+ file_conf='test_filename'
+else:
+ tablename_conf='train_tablename'
+ file_conf='train_filename' 
+
+
 config = configparser.ConfigParser()
 config.read(f"{path_root}/parameters.conf")
 data_lake_name=config.get("general","data_lake_name")
 s3BucketName=config.get("general","s3BucketName")
-#tablename=config.get("general","tablename")
-database=config.get("general","database")
-srcdir=s3BucketName
+tablename=config.get("general",tablename_conf)
+file     =config.get("general",file_conf)
+database =config.get("general","database")
+srcdir   =s3BucketName
 
 # see this article for more details and tips. Especially for Iceberg
 # https://community.cloudera.com/t5/Community-Articles/Spark-in-CML-Recommendations-for-using-Spark-in-Cloudera/ta-p/372164
@@ -94,10 +89,11 @@ spark = (
   .config("spark.sql.catalog.spark_catalog", "org.apache.iceberg.spark.SparkSessionCatalog")
   .config("spark.yarn.access.hadoopFileSystems", data_lake_name)
   .config("spark.hadoop.iceberg.engine.hive.enabled", "true")
-  .config("spark.jars", "/opt/spark/optional-lib/iceberg-spark-runtime.jar, /opt/spark/optional-lib/iceberg-hive-runtime.jar")
+  .config("spark.jars", "/opt/spark/optional-lib/iceberg-spark-runtime.jar")
   .getOrCreate()
   )
 
+#, /opt/spark/optional-lib/iceberg-hive-runtime.jar
 
 spark.sql(f"CREATE DATABASE if not exists ML_Train").show(10)
 

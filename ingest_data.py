@@ -45,11 +45,10 @@ from __future__ import print_function
 import os
 import sys
 from pyspark.sql import SparkSession
-
-# assume we're running in CML
+import time
 path_root=''
 
-# Are we not running in CML?
+# Are we running in CML
 if 'CDSW_PROJECT' not in os.environ:
   path_root='/app/mount'
 
@@ -57,39 +56,55 @@ else:
   path_root='/home/cdsw'
 
 
+print(f"Getting config from {path_root}/parameters.conf")
 import configparser
+
+tablename_conf='train_tablename'
+
 config = configparser.ConfigParser()
 config.read(f"{path_root}/parameters.conf")
 data_lake_name=config.get("general","data_lake_name")
 s3BucketName=config.get("general","s3BucketName")
-tablename=config.get("general","tablename")
-database=config.get("general","database")
-srcdir=s3BucketName
+tablename=config.get("general",'train_tablename')
 
+database =config.get("general","database")
+srcdir   =s3BucketName
 
+# see this article for more details and tips. Especially for Iceberg
+# https://community.cloudera.com/t5/Community-Articles/Spark-in-CML-Recommendations-for-using-Spark-in-Cloudera/ta-p/372164
+#
 
+spark = (
+  SparkSession.builder.appName("CCLead-Data-Loader")
+  .config("spark.sql.hive.hwc.execution.mode", "spark")
+  .config("spark.sql.extensions", "com.qubole.spark.hiveacid.HiveAcidAutoConvertExtension, org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
+  .config("spark.sql.catalog.spark_catalog.type", "hive")
+  .config("spark.sql.catalog.spark_catalog", "org.apache.iceberg.spark.SparkSessionCatalog")
+  .config("spark.yarn.access.hadoopFileSystems", data_lake_name)
+  .config("spark.hadoop.iceberg.engine.hive.enabled", "true")
+  .config("spark.jars", "/opt/spark/optional-lib/iceberg-spark-runtime.jar")
+  .getOrCreate()
+  )
 
-spark = SparkSession\
-    .builder\
-    .appName(f"CCLlead-Data-Validation ")\
-    .config("spark.sql.catalog.spark_catalog", "org.apache.iceberg.spark.SparkSessionCatalog")\
-    .config("spark.sql.catalog.spark_catalog.type", "hive")\
-    .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")\
-    .config("spark.yarn.access.hadoopFileSystems", data_lake_name)\
-    .getOrCreate()
+# Because this gets run in a jupyter app, we can't use normal command-line args
+if 'JOB_ARGUMENTS' in os.environ:
+  file_list = os.environ.get('JOB_ARGUMENTS').split()
+else:
+  file_list = "train_1.csv train_2.csv train_3.csv".split()
 
+for file in file_list:
 
-df = spark.read.options(header='True', inferSchema='True', delimiter=',') \
-  .csv(f"{s3BucketName}/train_01.csv")
+  df = spark.read.options(header='True', inferSchema='True', delimiter=',') \
+    .csv(f"{s3BucketName}/{file}")
 
-df.printSchema()
+  df.printSchema()
 
-df.writeTo(f"{database}.{tablename}")\
+  df.writeTo(f"{database}.{tablename}")\
      .tableProperty("write.format.default", "parquet")\
      .using("iceberg")\
      .append()
 ## do the audit test
-audit_df = spark.sql(f" SELECT COUNT(*) AS null_count FROM {database}.{tablename} WHERE id IS NULL")
-
+  audit_df = spark.sql(f" SELECT COUNT(*) AS null_count FROM {database}.{tablename} WHERE id IS NULL")
+  time.sleep(30)
 
 spark.stop()
