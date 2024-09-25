@@ -1,3 +1,3 @@
 #!bash
-pip install pandas numpy scikit-learn seaborn mlflow matplotlib xgboost imblearn lightgbm 
+pip install pandas numpy scikit-learn seaborn matplotlib xgboost imblearn lightgbm 
 mkdir -p data
