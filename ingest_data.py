@@ -47,6 +47,7 @@ import sys
 from pyspark.sql import SparkSession
 import time
 path_root=''
+USER_PREFIX='JVP'
 
 # Are we running in CML
 if 'CDSW_PROJECT' not in os.environ:
@@ -67,7 +68,7 @@ data_lake_name=config.get("general","data_lake_name")
 s3BucketName=config.get("general","s3BucketName")
 tablename=config.get("general",'train_tablename')
 
-database =config.get("general","database")
+database =f"{USER_PREFIX}_{config.get('general','database')}"
 srcdir   =s3BucketName
 
 # see this article for more details and tips. Especially for Iceberg
@@ -75,7 +76,7 @@ srcdir   =s3BucketName
 #
 
 spark = (
-  SparkSession.builder.appName("CCLead-Data-Loader")
+  SparkSession.builder.appName(f"{USER_PREFIX}_CCLead-Data-Loader")
   .config("spark.sql.hive.hwc.execution.mode", "spark")
   .config("spark.sql.extensions", "com.qubole.spark.hiveacid.HiveAcidAutoConvertExtension, org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
   .config("spark.sql.catalog.spark_catalog.type", "hive")
@@ -90,7 +91,7 @@ spark = (
 if 'JOB_ARGUMENTS' in os.environ:
   file_list = os.environ.get('JOB_ARGUMENTS').split()
 else:
-  file_list = "train_1.csv train_2.csv train_3.csv".split()
+  file_list = "train_1.csv train_2.csv train_3.csv train_4.csv".split()
 
 for file in file_list:
 

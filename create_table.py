@@ -48,15 +48,15 @@ from pyspark.sql import SparkSession
 # Because this gets run in a jupyter app, we can't use normal command-line args
 mode = os.environ.get('JOB_ARGUMENTS')
 
-path_root=''
+path_root='JVP'
 
-# Are we running in CML
+# Are we not running in CML?
 if 'CDSW_PROJECT' not in os.environ:
   path_root='/app/mount'
 else:
   path_root='/home/cdsw'
 
-
+USER_PREFIX='JVP'
 print(f"Getting config from {path_root}/parameters.conf")
 import configparser
 
@@ -74,7 +74,7 @@ data_lake_name=config.get("general","data_lake_name")
 s3BucketName=config.get("general","s3BucketName")
 tablename=config.get("general",tablename_conf)
 file     =config.get("general",file_conf)
-database =config.get("general","database")
+database =f"{USER_PREFIX}_{config.get('general','database')}"
 srcdir   =s3BucketName
 
 # see this article for more details and tips. Especially for Iceberg
@@ -82,7 +82,7 @@ srcdir   =s3BucketName
 #
 
 spark = (
-  SparkSession.builder.appName("CCLead-Data-Loader")
+  SparkSession.builder.appName(f"{USER_PREFIX}_CCLead-Data-Loader")
   .config("spark.sql.hive.hwc.execution.mode", "spark")
   .config("spark.sql.extensions", "com.qubole.spark.hiveacid.HiveAcidAutoConvertExtension, org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
   .config("spark.sql.catalog.spark_catalog.type", "hive")
@@ -94,8 +94,8 @@ spark = (
   )
 
 #, /opt/spark/optional-lib/iceberg-hive-runtime.jar
-
-spark.sql(f"CREATE DATABASE if not exists ML_Train").show(10)
+print(f"Using DDL: CREATE DATABASE if not exists {database}")
+spark.sql(f"CREATE DATABASE if not exists {database}").show(10)
 
 
 df = spark.read.options(header='True', inferSchema='True', delimiter=',').csv(f"{s3BucketName}/{file}")
