@@ -105,7 +105,7 @@ for file in file_list:
      .using("iceberg")\
      .append()
 ## do the audit test
-  audit_df = spark.sql(f" SELECT COUNT(*) AS null_count FROM {database}.{tablename} WHERE id IS NULL")
+  audit_df = spark.sql(f" SELECT COUNT(*) AS Row_Count FROM {database}.{tablename} ")
   time.sleep(30)
 
 spark.stop()
