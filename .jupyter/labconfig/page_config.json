@@ -1,8 +1,1 @@
-{
-    "disabledExtensions": {
-	"@jupyter/collaboration-extension": true
-    },
-    "lockedExtensions": {
-	"@jupyter/collaboration-extension": true
-    }
-}
+{ "disabledExtensions": { "@jupyter/collaboration-extension": true }, "lockedExtensions": { "@jupyter/collaboration-extension": true } }
