@@ -9,7 +9,7 @@ cc_vector='{"Age":0.6831522461,"Vintage":-0.8637453118,"Avg_Account_Balance":-0.
 
 data = json.loads(cc_vector)
 
-#cc_vector_df = pd.DataFrame([data])
+cc_vector_df = pd.DataFrame([data])
 #cc_vector_df = pd.DataFrame([0.6831522461, -0.8637453118, -0.1245877441, 1.0, 2.0, 1.0, 0.0, 3.0, 33.0]).T
 
 experiment = mlflow.get_experiment_by_name("JVP_FNB_CC_Cross_sell")
@@ -33,9 +33,9 @@ mlflow.pyfunc.get_model_dependencies(model_uri)
 #
 #print(f"val={val[0]}")
 
+print(f"vector df = {cc_vector_df}")
 
 logged_model = '/home/cdsw/.experiments/b0se-2xuo-w64u-04yn/atgg-nm4g-tqs7-1r4h/artifacts/lgb_model'
-
 
 # Load model as a PyFuncModel.
 loaded_model = mlflow.pyfunc.load_model(logged_model)
