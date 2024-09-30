@@ -4,9 +4,14 @@ import mlflow
 import pandas as pd
 import json
 import os
-from cc_normalize import normalize_data
+
 import sqlalchemy as db
 from sqlalchemy import Table, MetaData, select, func, text
+import pickle
+import numpy
+from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import StandardScaler
+
 
 app = Flask(__name__)
 
@@ -18,6 +23,53 @@ logged_model = '/home/cdsw/.experiments/b0se-2xuo-w64u-04yn/atgg-nm4g-tqs7-1r4h/
 
 # Load model as a PyFuncModel.
 loaded_model = mlflow.pyfunc.load_model(logged_model)
+
+with open('data/standardscaler.pkl', 'rb') as file:
+    loaded_standardscaler = pickle.load(file)
+
+with open('data/labelencoder.pkl', 'rb') as file:
+    loaded_labelencoder = pickle.load(file)
+
+with open('data/data_num_cols.pkl', 'rb') as file:
+    data_num_cols = pickle.load(file)
+
+with open('data/data_cat_cols.pkl', 'rb') as file:
+    data_cat_cols = pickle.load(file) 
+
+def normalize_data(raw_data):
+    print(f"top raw_data = {raw_data}")
+    raw_data='{"Age": 27, "Vintage": 26, "Avg_Account_Balance": 707906, "Channel_Code": "X1", "Credit_Product": "No", "Gender": "Female", "Is_Active": "No", "Occupation": "Salaried", "Region_Code": "RG256"}'  
+    
+    # Later, to load the scaler:
+       
+    
+    data = json.loads(raw_data)
+    
+    cc_vector_df = pd.DataFrame([data])    
+        
+        
+    data_num_data = cc_vector_df.loc[:, data_num_cols]
+    data_cat_data = cc_vector_df.loc[:, data_cat_cols]
+    
+    print("Shape of num data:", data_num_data.shape)
+    print("Shape of cat data:", data_cat_data.shape)
+    
+    print(f"data_num_data: {data_num_data}")
+    print(f"data_cat_data: {data_cat_data}")
+    
+    
+    #data_num_data_s = loaded_standardscaler.fit_transform(data_num_data)
+    
+    data_num_data_s = loaded_standardscaler.fit_transform(data_num_data)
+    data_num_data_df_s = pd.DataFrame(data_num_data_s, columns = data_num_cols)
+    
+    data_cat_data_norm = data_cat_data.apply(loaded_labelencoder.fit_transform)
+    data_cat_data_df = pd.DataFrame(data_cat_data_norm, columns = data_cat_cols)
+    
+    data_new = pd.concat([data_num_data_df_s, data_cat_data_df], axis = 1)
+    
+    print(f"data new={data_new}")
+    return data_new
 
 PORT = os.getenv('CDSW_APP_PORT', '8090')
 print(f"Port: {PORT}")
@@ -77,8 +129,8 @@ def index():
             # Normalize the data
             normalized_data = normalize_data(data)
             print(f"Normalized_data: {[normalized_data]}")
-            cc_vector_df = pd.DataFrame([normalized_data])
-            print(f"Vector df = {cc_vector_df}")
+            #cc_vector_df = pd.DataFrame([normalized_data])
+            print(f"Vector df = {normalized_data}")
             #cc_vector='{"Age":0.6831522461,"Vintage":-0.8637453118,"Avg_Account_Balance":-0.1245877441,"Channel_Code":1.0,"Credit_Product":2.0,"Gender":1.0,"Is_Active":0.0,\
             #"Occupation":3.0,"Region_Code":33.0}'          
             #data = json.loads(cc_vector)
@@ -86,7 +138,7 @@ def index():
             #print(f"Vector df = {cc_vector_df}")
 
             # Make prediction
-            prediction = loaded_model.predict(cc_vector_df)
+            prediction = loaded_model.predict(normalized_data)
             print(f"prediction = {prediction[0]}")
             return render_template('result.html', prediction=prediction[0])
         else:
@@ -98,4 +150,6 @@ def index():
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=PORT)
     
+
+
 
