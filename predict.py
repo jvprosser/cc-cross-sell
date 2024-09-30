@@ -2,7 +2,10 @@ import mlflow
 
 import pandas as pd
 import json
+from cc_normalize import normalize_data
 
+raw_data="{'Age': 27, 'Vintage': 26, 'Avg_Account_Balance': 707906, 'Channel_Code': 'X1', 'Credit_Product': 'No', 'Gender': 'Female', 'Is_Active': 'No', 'Occupation': 'Salaried', 'Region_Code': 'RG256'}"
+ndata = normalize_data(raw_data)
 
 cc_vector='{"Age":0.6831522461,"Vintage":-0.8637453118,"Avg_Account_Balance":-0.1245877441,"Channel_Code":1.0,"Credit_Product":2.0,"Gender":1.0,"Is_Active":0.0,\
 "Occupation":3.0,"Region_Code":33.0}'
