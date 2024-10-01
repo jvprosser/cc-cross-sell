@@ -70,6 +70,11 @@ def normalize_data(raw_data):
     #print(f"transformed data={data_new}\n")
     return data_new
 
+DB='jvp_cc_lead_model'
+DBHOST="dwarehouse-gateway.jqrhv9ch.l39n-29js.a8.cloudera.site"
+DBUSER="XXXXXXXXX"
+DBPASS="XXXXXXXX"
+
 PORT = os.getenv('CDSW_APP_PORT', '8090')
 print(f"Port: {PORT}")
 print(f"Listening on Port: {PORT}")
@@ -86,9 +91,9 @@ def index():
         #conn = connect(host='your_impala_host', port=21050)
 
       def conn():
-        return connect(host='dwarehouse-gateway.jqrhv9ch.l39n-29js.a8.cloudera.site', port=443, \
-                              timeout=None, use_ssl=True, ca_cert=None, database='jvp_cc_lead_model',\
-                              user="csso_jprosser", password="BadPass#1", kerberos_service_name='impala', \
+        return connect(host=DBHOST, port=443, \
+                              timeout=None, use_ssl=True, ca_cert=None, database=DB,\
+                              user=DBUSER, password=DBPASS, kerberos_service_name='impala', \
                               auth_mechanism="LDAP", krb_host=None, use_http_transport=True, \
                               http_path='cliservice', http_cookie_names=None, retries=3, jwt=None,\
                               user_agent=None)
