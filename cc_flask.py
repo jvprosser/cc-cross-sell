@@ -8,8 +8,8 @@ import os
 import sqlalchemy as db
 from sqlalchemy import Table, MetaData, select, func, text
 import pickle
-import numpy
-from sklearn.preprocessing import LabelEncoder
+import numpy as np
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
 
 
@@ -17,7 +17,7 @@ app = Flask(__name__)
 
 # Load the MLflow model along with the transformers we built in the model notebook
 
-logged_model = '/home/cdsw/.experiments/b0se-2xuo-w64u-04yn/atgg-nm4g-tqs7-1r4h/artifacts/lgb_model'
+logged_model = '/home/cdsw/.experiments/b5se-9i4r-sv7y-h5me/vr22-6y1w-xne8-jyg3/artifacts/lgb_model'
 
 # Load model as a PyFuncModel.
 loaded_model = mlflow.pyfunc.load_model(logged_model)
@@ -25,9 +25,12 @@ loaded_model = mlflow.pyfunc.load_model(logged_model)
 with open('data/standardscaler.pkl', 'rb') as file:
     loaded_standardscaler = pickle.load(file)
 
-with open('data/labelencoder.pkl', 'rb') as file:
-    loaded_labelencoder = pickle.load(file)
+#with open('data/labelencoder.pkl', 'rb') as file:
+#    loaded_labelencoder = pickle.load(file)
 
+with open('data/onehotenc.pkl','rb') as file:
+    ohefit = pickle.load(file)
+    
 with open('data/data_num_cols.pkl', 'rb') as file:
     data_num_cols = pickle.load(file)
 
@@ -47,21 +50,22 @@ def normalize_data(raw_data):
         
     data_num_data = cc_vector_df.loc[:, data_num_cols]
     data_cat_data = cc_vector_df.loc[:, data_cat_cols]
-    
+    data_num_data['Avg_Account_Balance'] = np.log(data_num_data['Avg_Account_Balance'])
     print(f"Shape of num data: {data_num_data.shape}")
     print(f"Shape of cat data: {data_cat_data.shape}")
     
     print(f"data_num_data: {data_num_data}\n")
     print(f"data_cat_data: {data_cat_data}\n")
-    
-        
-    data_num_data_s = loaded_standardscaler.fit_transform(data_num_data)
+         
+    data_num_data_s = loaded_standardscaler.transform(data_num_data)
     data_num_data_df_s = pd.DataFrame(data_num_data_s, columns = data_num_cols)
     
-    data_cat_data_norm = data_cat_data.apply(loaded_labelencoder.fit_transform)
-    data_cat_data_df = pd.DataFrame(data_cat_data_norm, columns = data_cat_cols)
+    #data_cat_data_norm = loaded_labelencoder.transform(data_cat_data)
+    data_cat_data_norm = ohefit.transform(data_cat_data)    
+
+    #data_cat_data_df = pd.DataFrame(data_cat_data_norm, columns = data_cat_cols)
     
-    data_new = pd.concat([data_num_data_df_s, data_cat_data_df], axis = 1)
+    data_new = pd.concat([data_num_data_df_s, data_cat_data_norm], axis = 1)
     
     #print(f"transformed data={data_new}\n")
     return data_new
