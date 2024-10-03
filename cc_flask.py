@@ -12,7 +12,7 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
 
-USER_PREFIX='JVP'
+USER_PREFIX=''
 path_root='/home/cdsw'
 
 import configparser
