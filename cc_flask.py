@@ -12,6 +12,17 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
 
+USER_PREFIX='JVP'
+path_root='/home/cdsw'
+
+import configparser
+config = configparser.ConfigParser()
+config.read(f"{path_root}/parameters.conf")
+
+database      =f"{USER_PREFIX}_{config.get('general','database')}"
+database_host =f"{config.get('flask','database_host')}"
+database_user =f"{config.get('flask','database_user')}"
+database_pass =f"{config.get('flask','database_password')}"
 
 app = Flask(__name__)
 
@@ -70,11 +81,6 @@ def normalize_data(raw_data):
     #print(f"transformed data={data_new}\n")
     return data_new
 
-DB='jvp_cc_lead_model'
-DBHOST="dwarehouse-gateway.jqrhv9ch.l39n-29js.a8.cloudera.site"
-DBUSER="XXXXXXXXX"
-DBPASS="XXXXXXXX"
-
 PORT = os.getenv('CDSW_APP_PORT', '8090')
 print(f"Port: {PORT}")
 print(f"Listening on Port: {PORT}")
@@ -91,9 +97,9 @@ def index():
         #conn = connect(host='your_impala_host', port=21050)
 
       def conn():
-        return connect(host=DBHOST, port=443, \
-                              timeout=None, use_ssl=True, ca_cert=None, database=DB,\
-                              user=DBUSER, password=DBPASS, kerberos_service_name='impala', \
+        return connect(host=database_host, port=443, \
+                              timeout=None, use_ssl=True, ca_cert=None, database=database,\
+                              user=database_user, password=database_pass, kerberos_service_name='impala', \
                               auth_mechanism="LDAP", krb_host=None, use_http_transport=True, \
                               http_path='cliservice', http_cookie_names=None, retries=3, jwt=None,\
                               user_agent=None)
@@ -104,7 +110,7 @@ def index():
       with engine.connect() as conn:
         query = f"""
           SELECT Age, Vintage, Avg_Account_Balance, Channel_Code, Credit_Product, Gender, Is_Active ,Occupation, Region_Code 
-          FROM jvp_cc_lead_model.cc_lead_train  
+          FROM {USER_PREFIX}_cc_lead_model.cc_lead_train  
           WHERE ID = '{id}'
           """
         print(f"query: {query}")
@@ -117,7 +123,6 @@ def index():
         if result:
             # Store results in a dictionary
             data = {
-               
                 "Age": result[0],
                 "Vintage": result[1],
                 "Avg_Account_Balance": result[2],
@@ -133,13 +138,7 @@ def index():
             # Normalize the data
             normalized_data = normalize_data(data)
             print(f"Normalized_data: {[normalized_data]}")
-            #cc_vector_df = pd.DataFrame([normalized_data])
-            #print(f"Vector df = {normalized_data}")
-            #cc_vector='{"Age":0.6831522461,"Vintage":-0.8637453118,"Avg_Account_Balance":-0.1245877441,"Channel_Code":1.0,"Credit_Product":2.0,"Gender":1.0,"Is_Active":0.0,\
-            #"Occupation":3.0,"Region_Code":33.0}'          
-            #data = json.loads(cc_vector)
-            #cc_vector_df = pd.DataFrame([data])        
-            #print(f"Vector df = {cc_vector_df}")
+            #print(f"Normalized_data: {normalized_data}")
 
             # Make prediction
             prediction = loaded_model.predict(normalized_data)

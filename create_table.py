@@ -47,8 +47,9 @@ from pyspark.sql import SparkSession
 
 # Because this gets run in a jupyter app, we can't use normal command-line args
 mode = os.environ.get('JOB_ARGUMENTS')
+USER_PREFIX='JVP'
 
-path_root='JVP'
+path_root='.'
 
 # Are we not running in CML?
 if 'CDSW_PROJECT' not in os.environ:
@@ -56,9 +57,7 @@ if 'CDSW_PROJECT' not in os.environ:
 else:
   path_root='/home/cdsw'
 
-USER_PREFIX='JVP'
 print(f"Getting config from {path_root}/parameters.conf")
-import configparser
 
 if mode == 'test':
  tablename_conf='test_tablename'
@@ -67,7 +66,7 @@ else:
  tablename_conf='train_tablename'
  file_conf='train_filename' 
 
-
+import configparser
 config = configparser.ConfigParser()
 config.read(f"{path_root}/parameters.conf")
 data_lake_name=config.get("general","data_lake_name")
