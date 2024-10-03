@@ -47,7 +47,7 @@ from pyspark.sql import SparkSession
 
 # Because this gets run in a jupyter app, we can't use normal command-line args
 mode = os.environ.get('JOB_ARGUMENTS')
-USER_PREFIX='JVP'
+USER_PREFIX=''
 
 path_root='.'
 
