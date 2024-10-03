@@ -47,7 +47,7 @@ import sys
 from pyspark.sql import SparkSession
 import time
 path_root=''
-USER_PREFIX='JVP'
+USER_PREFIX=''
 
 # Are we running in CML
 if 'CDSW_PROJECT' not in os.environ:
