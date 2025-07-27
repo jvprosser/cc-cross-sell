@@ -1,6 +1,6 @@
 # Credit Card Lead Prediction
 
-Happy Customer Bank is a mid-sized private bank that deals in all kinds of banking products, like Savings accounts, Current accounts, investment products, credit products, among other offerings.
+Central Bank is a mid-sized private bank that deals in all kinds of banking products, including Savings accounts, Current accounts, investment products, credit products, among other offerings.
 
 The bank also cross-sells products to its existing customers and to do so they use different kinds of communication like telecasting, e-mails, recommendations on net banking, mobile banking, etc.
 
